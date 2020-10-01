@@ -1,11 +1,12 @@
+ 
 .MODEL SMALL
 .STACK 100H
 .DATA    
 
-MSG1 DB 10,13,'                .....WELCOME TO YOUR FIRST QUIZ.....$'
+MSG1 DB 10,13,'                .....WELCOME TO JR_QUIZ.....$'
 MSG2 DB 10,13,'Rules : $'
 MSG3 DB 10,13,'*. For Every Correct answer you will get 1 point.$'
-MSG4 DB 10,13, '*. For Every Wrong answer 1 Point will cut from your total point.$'
+MSG4 DB 10,13, '*. This is a buzzer round , you get 5 seconds to answer.$'
 MSG5 DB 10,13, 'Press Enter to start the quiz : $'
 MSG6 DB 10,13, 'Right Answer....$'
 MSG7 DB 10,13, 'Wrong Answer....$'
@@ -45,11 +46,25 @@ a dw 4 dup(?)
 score1 dw ?
 score2 dw ?
 score3 dw ?
-score4 dw ?
+score4 dw ? 
+tal db ?
+tah db ?
+tbl db ?
+tbh db ?
+tcl db ?
+tch db ?
+tdl db ?
+tdh db ? 
+tcx dw ?
+tdx dw ?
+tbx dw ?
+buzAh db 0
+buzDh db 0
 mov score1,0
 mov score2,0
 mov score3,0
 mov score4,0
+mov tbx,0
 .CODE   
 
 prints macro xx,yy
@@ -88,6 +103,13 @@ main proc
     scans1:
         int 21h
         mov a[bx],ax
+        mov buzAh,AH
+        mov buzDh,DL
+        MOV AH,2
+        MOV DL, 07H
+        INT 21H
+        mov ah,buzAh
+        mov dl,buzDh
         inc bx    
         loop scans1 
         MOV AH,2
@@ -98,23 +120,52 @@ main proc
     mov ah,2
     mov dx,a[bx]
     int 21h
-    
+    mov tdx,dx
     prints MSG13,09h
-    mov ah,1
-    int 21h
+    ;mov tal,al
+    mov tah,ah
+    mov tbx,bx
+    
+    mov tcx,cx
+    mov al,'x'
+    mov ah,02ch        ; Get current second         
+    int 021h
+    mov bh,dh          ; Store current second   
+    readloop:
+    mov ah,02ch      ; Call function 02C of INT 021 to get new time
+    int 021h
+    sub dh,05h         ; Subtract 05 from new second. Giving 5 Secs for input.
+                        ; For if old second in BH=05 and new second in DH-5=1,
+                        ; four more
+                        ; seconds must pass.
+    cmp bh,dh                    
+    je endprog         ; Exit when DH is finally equal to BH.
+                     ; Example BH=05 and DH - 05 = 05, then DH = 0F and 
+                     ; 05 - 0F = Five Seconds
+    mov ah,06h          ; Function 06h of INT 021 will directly read from the Stdin/Stdout
+    mov dl,255           ; Move 0ff into the DL register to read from the keyboard
+    int 21h              
+    jz readloop
+    endprog:
+    mov cx,tcx
+    
+    mov ah,tah
+    mov bx,tbx
+     
     cmp al,'a'
     jz right1
     jnz wrong1
     mov cx,0
     right1:
         prints MSG6,09h
-        cmp dx,1
+        mov dx,tdx
+        cmp dl,'1'
         jz team11
-        cmp dx,2
+        cmp dl,'2'
         jz team12
-        cmp dx,3
+        cmp dl,'3'
         jz team13
-        cmp dx,4
+        cmp dl,'4'
         jz team14
         
         team11:
@@ -134,27 +185,27 @@ main proc
     wrong1:
         inc cx
         prints MSG7,09h
-                     
-        cmp dx,1
+        mov dx,tdx             
+        cmp dl,'1'
         jz team21
-        cmp dx,2
+        cmp dl,'2'
         jz team22
-        cmp dx,3
+        cmp dl,'3'
         jz team23
-        cmp dx,4
+        cmp dl,'4'
         jz team24
         
         team21:
-            call Apositive
+            call Anegative
             jmp conti1
         team22:
-            call Bpositive
+            call Bnegative
             jmp conti1
         team23:
-            call Cpositive
+            call Cnegative
             jmp conti1
         team24:
-            call Dpositive
+            call Dnegative
             jmp conti1
         
         conti1:                 
@@ -163,21 +214,64 @@ main proc
         mov ah,2
         mov dx,a[bx]
         int 21h
+        mov tdx,dx
         prints MSG13,09h
-        mov ah,1
-        int 21h
+        ;mov ah,1
+        ;int 21h
+    mov tah,ah
+    mov tbx,bx
+    
+    mov tcx,cx
+    mov al,'x'
+    mov ah,02ch        ; Get current second         
+    int 021h
+    mov bh,dh          ; Store current second   
+    readloop2:
+    mov ah,02ch      ; Call function 02C of INT 021 to get new time
+    int 021h
+    sub dh,05h         ; Subtract 05 from new second. Giving 5 Secs for input.
+                        ; For if old second in BH=05 and new second in DH-5=1,
+                        ; four more
+                        ; seconds must pass.
+    cmp bh,dh                    
+    je endprog2         ; Exit when DH is finally equal to BH.
+                     ; Example BH=05 and DH - 05 = 05, then DH = 0F and 
+                     ; 05 - 0F = Five Seconds
+    mov ah,06h          ; Function 06h of INT 021 will directly read from the Stdin/Stdout
+    mov dl,255           ; Move 0ff into the DL register to read from the keyboard
+    int 21h              
+    jz readloop2
+    endprog2:
+    mov cx,tcx
+    mov dx,tdx
+    mov ah,tah
+    mov bx,tbx       
+        ;
+        ;
+        ;
         cmp al,'a'
         jz right1
         jnz wrong1
         cmp cx,4
         jz pass1
+        
         jnz Ques2
         
-    pass1:
-        prints MSG14,09h
-        jmp Ques2
+    pass1: 
+    
+        jmp Ques2 
+        
         
     Ques2:
+ ;   prints MSG14,09h
+ ;  sprinter score1
+;        prints MSG17,09h
+;        sprinter score2
+;        prints MSG18,09h
+;        sprinter score3
+;        prints MSG19,09h
+;        sprinter score4     prints MSG16,09h 
+        
     mov bx,0
     prints Q2,09h
     prints QA2,09h 
@@ -187,6 +281,13 @@ main proc
     scans2:
         int 21h
         mov a[bx],ax
+        mov buzAh,AH
+        mov buzDh,DL
+        MOV AH,2
+        MOV DL, 07H
+        INT 21H
+        mov ah,buzAh
+        mov dl,buzDh
         inc bx
         loop scans2
         MOV AH,2
@@ -197,22 +298,53 @@ main proc
     mov ah,2
     mov dx,a[bx]
     int 21h
+    
+    mov tdx,dx
     prints MSG13,09h
-    mov ah,1
-    int 21h
+    ;mov ah,1
+    ;int 21h
+    mov tah,ah
+    mov tbx,bx
+    mov tcx,cx
+    mov al,'x'
+    mov ah,02ch        ; Get current second         
+    int 021h
+    mov bh,dh          ; Store current second   
+    readloop3:
+    mov ah,02ch      ; Call function 02C of INT 021 to get new time
+    int 021h
+    sub dh,05h         ; Subtract 05 from new second. Giving 5 Secs for input.
+                        ; For if old second in BH=05 and new second in DH-5=1,
+                        ; four more
+                        ; seconds must pass.
+    cmp bh,dh                    
+    je endprog3         ; Exit when DH is finally equal to BH.
+                     ; Example BH=05 and DH - 05 = 05, then DH = 0F and 
+                     ; 05 - 0F = Five Seconds
+    mov ah,06h          ; Function 06h of INT 021 will directly read from the Stdin/Stdout
+    mov dl,255           ; Move 0ff into the DL register to read from the keyboard
+    int 21h              
+    jz readloop3
+    endprog3:
+    mov cx,tcx
+    mov ah,tah
+    mov bx,tbx
+    ;
+    ;
     cmp al,'b'
     jz right2
     jnz wrong2
     mov cx,0
     right2:
         prints MSG6,09h
-        cmp dx,1
+        mov dx,tdx
+        cmp dl,'1'
         jz team31
-        cmp dx,2
+        cmp dl,'2'
         jz team32
-        cmp dx,3
+        cmp dl,'3'
         jz team33
-        cmp dx,4
+        cmp dl,'4'
         jz team34
         
         team31:
@@ -232,27 +364,28 @@ main proc
     wrong2:
         inc cx
         prints MSG7,09h
+        mov dx,tdx
         inc bx 
-        cmp dx,1
+        cmp dl,'1'
         jz team41
-        cmp dx,2
+        cmp dl,'2'
         jz team42
-        cmp dx,3
+        cmp dl,'3'
         jz team43
-        cmp dx,4
+        cmp dl,'4'
         jz team44
         
         team41:
-            call Apositive
+            call Anegative
             jmp conti2
         team42:
-            call Bpositive
+            call Bnegative
             jmp conti2
         team43:
-            call Cpositive
+            call Cnegative
             jmp conti2
         team44:
-            call Dpositive
+            call Dnegative
             jmp conti2
         
         conti2:
@@ -260,9 +393,39 @@ main proc
         mov ah,2
         mov dx,a[bx]
         int 21h
+        mov tdx,dx
         prints MSG13,09h
-        mov ah,1
-        int 21h
+        ;mov ah,1
+        ;int 21h
+    mov tah,ah
+    mov tbx,bx    
+    mov tcx,cx
+    mov al,'x'
+    mov ah,02ch        ; Get current second         
+    int 021h
+    mov bh,dh          ; Store current second   
+    readloop4:
+    mov ah,02ch      ; Call function 02C of INT 021 to get new time
+    int 021h
+    sub dh,05h         ; Subtract 05 from new second. Giving 5 Secs for input.
+                        ; For if old second in BH=05 and new second in DH-5=1,
+                        ; four more
+                        ; seconds must pass.
+    cmp bh,dh                    
+    je endprog4         ; Exit when DH is finally equal to BH.
+                     ; Example BH=05 and DH - 05 = 05, then DH = 0F and 
+                     ; 05 - 0F = Five Seconds
+    mov ah,06h          ; Function 06h of INT 021 will directly read from the Stdin/Stdout
+    mov dl,255           ; Move 0ff into the DL register to read from the keyboard
+    int 21h              
+    jz readloop4
+    endprog4:
+    mov cx,tcx
+    
+    mov ah,tah
+    mov bx,tbx
+    ;
+    ;
         cmp al,'b'
         jz right2
         jnz wrong2
@@ -286,7 +449,14 @@ main proc
     mov ah,1
     scans3:
         int 21h
-        mov a[bx],ax
+        mov a[bx],ax  
+        mov buzAh,AH
+        mov buzDh,DL
+        MOV AH,2
+        MOV DL, 07H
+        INT 21H
+        mov ah,buzAh
+        mov dl,buzDh
         inc bx
         loop scans3
         MOV AH,2
@@ -297,22 +467,54 @@ main proc
     mov ah,2
     mov dx,a[bx]
     int 21h
+    mov tdx,dx
     prints MSG13,09h
-    mov ah,1
-    int 21h
+    ;mov ah,1
+    ;int 21h
+        mov tah,ah
+    mov tbx,bx
+    
+    mov tcx,cx
+    mov al,'x'
+    mov ah,02ch        ; Get current second         
+    int 021h
+    mov bh,dh          ; Store current second   
+    readloop5:
+    mov ah,02ch      ; Call function 02C of INT 021 to get new time
+    int 021h
+    sub dh,05h         ; Subtract 05 from new second. Giving 5 Secs for input.
+                        ; For if old second in BH=05 and new second in DH-5=1,
+                        ; four more
+                        ; seconds must pass.
+    cmp bh,dh                    
+    je endprog5         ; Exit when DH is finally equal to BH.
+                     ; Example BH=05 and DH - 05 = 05, then DH = 0F and 
+                     ; 05 - 0F = Five Seconds
+    mov ah,06h          ; Function 06h of INT 021 will directly read from the Stdin/Stdout
+    mov dl,255           ; Move 0ff into the DL register to read from the keyboard
+    int 21h              
+    jz readloop5
+    endprog5:
+    mov cx,tcx
+    
+    mov ah,tah
+    mov bx,tbx
+    ;
+    ;
     cmp al,'b'
     jz right3
     jnz wrong3
     mov cx,0
     right3:
         prints MSG6,09h
-        cmp dx,1
+        mov dx,tdx
+        cmp dl,'1'
         jz team51
-        cmp dx,2
+        cmp dl,'2'
         jz team52
-        cmp dx,3
+        cmp dl,'3'
         jz team53
-        cmp dx,4
+        cmp dl,'4'
         jz team54
         
         team51:
@@ -332,27 +534,28 @@ main proc
     wrong3:
         inc cx
         prints MSG7,09h
+        mov dx,tdx
         inc bx 
-        cmp dx,1
+        cmp dl,'1'
         jz team61
-        cmp dx,2
+        cmp dl,'2'
         jz team62
-        cmp dx,3
+        cmp dl,'3'
         jz team63
-        cmp dx,4
+        cmp dl,'4'
         jz team64
         
         team61:
-            call Apositive
+            call Anegative
             jmp conti3
         team62:
-            call Bpositive
+            call Bnegative
             jmp conti3
         team63:
-            call Cpositive
+            call Cnegative
             jmp conti3
         team64:
-            call Dpositive
+            call Dnegative
             jmp conti3
         
         conti3:
@@ -360,9 +563,40 @@ main proc
         mov ah,2
         mov dx,a[bx]
         int 21h
+        mov tdx,dx
         prints MSG13,09h
-        mov ah,1
-        int 21h
+        ;mov ah,1
+        ;int 21h
+            mov tah,ah
+    mov tbx,bx
+    ;mov tdx,dx
+    mov tcx,cx
+    mov al,'x'
+    mov ah,02ch        ; Get current second         
+    int 021h
+    mov bh,dh          ; Store current second   
+    readloop6:
+    mov ah,02ch      ; Call function 02C of INT 021 to get new time
+    int 021h
+    sub dh,05h         ; Subtract 05 from new second. Giving 5 Secs for input.
+                        ; For if old second in BH=05 and new second in DH-5=1,
+                        ; four more
+                        ; seconds must pass.
+    cmp bh,dh                    
+    je endprog6         ; Exit when DH is finally equal to BH.
+                     ; Example BH=05 and DH - 05 = 05, then DH = 0F and 
+                     ; 05 - 0F = Five Seconds
+    mov ah,06h          ; Function 06h of INT 021 will directly read from the Stdin/Stdout
+    mov dl,255           ; Move 0ff into the DL register to read from the keyboard
+    int 21h              
+    jz readloop6
+    endprog6:
+    mov cx,tcx
+    mov dx,tdx
+    mov ah,tah
+    mov bx,tbx
+        ;
+        ;
         cmp al,'b'
         jz right3
         jnz wrong3
@@ -390,6 +624,13 @@ main proc
     scans4:
         int 21h
         mov a[bx],ax
+        mov buzAh,AH
+        mov buzDh,DL
+        MOV AH,2
+        MOV DL, 07H
+        INT 21H
+        mov ah,buzAh
+        mov dl,buzDh
         inc bx
         loop scans4
         MOV AH,2
@@ -400,22 +641,54 @@ main proc
     mov ah,2
     mov dx,a[bx]
     int 21h
+    mov tdx,dx;;##########
     prints MSG13,09h
-    mov ah,1
-    int 21h
+    ;mov ah,1
+    ;int 21h
+        mov tah,ah
+    mov tbx,bx
+    
+    mov tcx,cx
+    mov al,'x'
+    mov ah,02ch        ; Get current second         
+    int 021h
+    mov bh,dh          ; Store current second   
+    readloop7:
+    mov ah,02ch      ; Call function 02C of INT 021 to get new time
+    int 021h
+    sub dh,05h         ; Subtract 05 from new second. Giving 5 Secs for input.
+                        ; For if old second in BH=05 and new second in DH-5=1,
+                        ; four more
+                        ; seconds must pass.
+    cmp bh,dh                    
+    je endprog7         ; Exit when DH is finally equal to BH.
+                     ; Example BH=05 and DH - 05 = 05, then DH = 0F and 
+                     ; 05 - 0F = Five Seconds
+    mov ah,06h          ; Function 06h of INT 021 will directly read from the Stdin/Stdout
+    mov dl,255           ; Move 0ff into the DL register to read from the keyboard
+    int 21h              
+    jz readloop7
+    endprog7:
+    mov cx,tcx
+    
+    mov ah,tah
+    mov bx,tbx
+    ;
+    ;
     cmp al,'b'
     jz right4
     jnz wrong4
     mov cx,0
     right4:
         prints MSG6,09h
-        cmp dx,1
+        mov dx,tdx
+        cmp dl,'1'
         jz team71
-        cmp dx,2
+        cmp dl,'2'
         jz team72
-        cmp dx,3
+        cmp dl,'3'
         jz team73
-        cmp dx,4
+        cmp dl,'4'
         jz team74
         
         team71:
@@ -435,27 +708,28 @@ main proc
     wrong4:
         inc cx
         prints MSG7,09h
-        inc bx 
-        cmp dx,1
+        inc bx
+        mov dx,tdx 
+        cmp dl,'1'
         jz team81
-        cmp dx,2
+        cmp dl,'2'
         jz team82
-        cmp dx,3
+        cmp dl,'3'
         jz team83
-        cmp dx,4
+        cmp dl,'4'
         jz team84
         
         team81:
-            call Apositive
+            call Anegative
             jmp conti4
         team82:
-            call Bpositive
+            call Bnegative
             jmp conti4
         team83:
-            call Cpositive
+            call Cnegative
             jmp conti4
         team84:
-            call Dpositive
+            call Dnegative
             jmp conti4
         
         conti4:
@@ -463,9 +737,40 @@ main proc
         mov ah,2
         mov dx,a[bx]
         int 21h
+        mov tdx,dx;#######
         prints MSG13,09h
-        mov ah,1
-        int 21h
+        ;mov ah,1
+        ;int 21h
+            mov tah,ah
+    mov tbx,bx
+    
+    mov tcx,cx
+    mov al,'x'
+    mov ah,02ch        ; Get current second         
+    int 021h
+    mov bh,dh          ; Store current second   
+    readloop8:
+    mov ah,02ch      ; Call function 02C of INT 021 to get new time
+    int 021h
+    sub dh,05h         ; Subtract 05 from new second. Giving 5 Secs for input.
+                        ; For if old second in BH=05 and new second in DH-5=1,
+                        ; four more
+                        ; seconds must pass.
+    cmp bh,dh                    
+    je endprog8         ; Exit when DH is finally equal to BH.
+                     ; Example BH=05 and DH - 05 = 05, then DH = 0F and 
+                     ; 05 - 0F = Five Seconds
+    mov ah,06h          ; Function 06h of INT 021 will directly read from the Stdin/Stdout
+    mov dl,255           ; Move 0ff into the DL register to read from the keyboard
+    int 21h              
+    jz readloop8
+    endprog8:
+    mov cx,tcx
+    mov dx,tdx
+    mov ah,tah
+    mov bx,tbx
+        ;
+        ;
         cmp al,'b'
         jz right4
         jnz wrong4
@@ -491,6 +796,13 @@ main proc
     scans5:
         int 21h
         mov a[bx],ax
+        mov buzAh,AH
+        mov buzDh,DL
+        MOV AH,2
+        MOV DL, 07H
+        INT 21H
+        mov ah,buzAh
+        mov dl,buzDh
         inc bx
         loop scans5
         MOV AH,2
@@ -501,22 +813,53 @@ main proc
     mov ah,2
     mov dx,a[bx]
     int 21h
+    mov tdx,dx
     prints MSG13,09h
-    mov ah,1
-    int 21h
+    ;mov ah,1
+    ;int 21h
+    mov tah,ah
+    mov tbx,bx    
+    mov tcx,cx
+    mov al,'x'
+    mov ah,02ch        ; Get current second         
+    int 021h
+    mov bh,dh          ; Store current second   
+    readloop9:
+    mov ah,02ch      ; Call function 02C of INT 021 to get new time
+    int 021h
+    sub dh,05h         ; Subtract 05 from new second. Giving 5 Secs for input.
+                        ; For if old second in BH=05 and new second in DH-5=1,
+                        ; four more
+                        ; seconds must pass.
+    cmp bh,dh                    
+    je endprog9         ; Exit when DH is finally equal to BH.
+                     ; Example BH=05 and DH - 05 = 05, then DH = 0F and 
+                     ; 05 - 0F = Five Seconds
+    mov ah,06h          ; Function 06h of INT 021 will directly read from the Stdin/Stdout
+    mov dl,255           ; Move 0ff into the DL register to read from the keyboard
+    int 21h              
+    jz readloop9
+    endprog9:
+    mov cx,tcx
+    
+    mov ah,tah
+    mov bx,tbx
+        ;
+        ;
     cmp al,'b'
     jz right5
     jnz wrong5
     mov cx,0
     right5:
         prints MSG6,09h
-        cmp dx,1
+        mov dx,tdx
+        cmp dl,'1'
         jz team91
-        cmp dx,2
+        cmp dl,'2'
         jz team92
-        cmp dx,3
+        cmp dl,'3'
         jz team93
-        cmp dx,4
+        cmp dl,'4'
         jz team94
         
         team91:
@@ -536,37 +879,70 @@ main proc
     wrong5:
         inc cx
         prints MSG7,09h
-        inc bx 
-        cmp dx,1
+        inc bx
+        mov dx,tdx 
+        cmp dl,'1'
         jz team101
-        cmp dx,2
+        cmp dl,'2'
         jz team102
-        cmp dx,3
+        cmp dl,'3'
         jz team103
-        cmp dx,4
+        cmp dl,'4'
         jz team104
         
         team101:
-            call Apositive
+            call Anegative
             jmp conti5
         team102:
-            call Bpositive
+            call Bnegative
             jmp conti5
         team103:
-            call Cpositive
+            call Cnegative
             jmp conti5
         team104:
-            call Dpositive
+            call Dnegative
             jmp conti5
         
         conti5:
         prints MSG10,09h
         mov ah,2
         mov dx,a[bx]
-        int 21h
+        int 21h 
+        mov tdx,dx
         prints MSG13,09h
-        mov ah,1
-        int 21h
+        ;mov ah,1
+        ;int 21h
+    mov tah,ah
+    mov tbx,bx
+    
+    mov tcx,cx
+    mov al,'x'
+    mov ah,02ch        ; Get current second         
+    int 021h
+    mov bh,dh          ; Store current second   
+    readloop10:
+    mov ah,02ch      ; Call function 02C of INT 021 to get new time
+    int 021h
+    sub dh,05h         ; Subtract 05 from new second. Giving 5 Secs for input.
+                        ; For if old second in BH=05 and new second in DH-5=1,
+                        ; four more
+                        ; seconds must pass.
+    cmp bh,dh                    
+    je endprog10         ; Exit when DH is finally equal to BH.
+                     ; Example BH=05 and DH - 05 = 05, then DH = 0F and 
+                     ; 05 - 0F = Five Seconds
+    mov ah,06h          ; Function 06h of INT 021 will directly read from the Stdin/Stdout
+    mov dl,255           ; Move 0ff into the DL register to read from the keyboard
+    int 21h              
+    jz readloop10
+    endprog10:
+    mov cx,tcx
+    mov dx,tdx
+    mov ah,tah
+    mov bx,tbx
+        ;
+        ;
+
         cmp al,'b'
         jz right5
         jnz wrong5
@@ -591,7 +967,14 @@ main proc
     mov ah,1
     scans6:
         int 21h
-        mov a[bx],ax
+        mov a[bx],ax 
+        mov buzAh,AH
+        mov buzDh,DL
+        MOV AH,2
+        MOV DL, 07H
+        INT 21H
+        mov ah,buzAh
+        mov dl,buzDh
         inc bx
         loop scans6
         MOV AH,2
@@ -602,22 +985,55 @@ main proc
     mov ah,2
     mov dx,a[bx]
     int 21h
+    mov tdx,dx
     prints MSG13,09h
-    mov ah,1
-    int 21h
+    ;mov ah,1
+    ;int 21h
+        mov tah,ah
+    mov tbx,bx
+    
+    mov tcx,cx
+    mov al,'x'
+    mov ah,02ch        ; Get current second         
+    int 021h
+    mov bh,dh          ; Store current second   
+    readloop11:
+    mov ah,02ch      ; Call function 02C of INT 021 to get new time
+    int 021h
+    sub dh,05h         ; Subtract 05 from new second. Giving 5 Secs for input.
+                        ; For if old second in BH=05 and new second in DH-5=1,
+                        ; four more
+                        ; seconds must pass.
+    cmp bh,dh                    
+    je endprog11         ; Exit when DH is finally equal to BH.
+                     ; Example BH=05 and DH - 05 = 05, then DH = 0F and 
+                     ; 05 - 0F = Five Seconds
+    mov ah,06h          ; Function 06h of INT 021 will directly read from the Stdin/Stdout
+    mov dl,255           ; Move 0ff into the DL register to read from the keyboard
+    int 21h              
+    jz readloop11
+    endprog11:
+    mov cx,tcx
+    mov dx,tdx
+    mov ah,tah
+    mov bx,tbx
+        ;
+        ;
+
     cmp al,'b'
     jz right6
     jnz wrong6
     mov cx,0
     right6:
         prints MSG6,09h
-        cmp dx,1
+        mov dx,tdx
+        cmp dl,'1'
         jz team111
-        cmp dx,2
+        cmp dl,'2'
         jz team112
-        cmp dx,3
+        cmp dl,'3'
         jz team113
-        cmp dx,4
+        cmp dl,'4'
         jz team114
         
         team111:
@@ -637,27 +1053,28 @@ main proc
     wrong6:
         inc cx
         prints MSG7,09h
+        mov dx,tdx
         inc bx 
-        cmp dx,1
+        cmp dl,'1'
         jz team121
-        cmp dx,2
+        cmp dl,'2'
         jz team122
-        cmp dx,3
+        cmp dl,'3'
         jz team123
-        cmp dx,4
+        cmp dl,'4'
         jz team124
         
         team121:
-            call Apositive
+            call Anegative
             jmp conti6
         team122:
-            call Bpositive
+            call Bnegative
             jmp conti6
         team123:
-            call Cpositive
+            call Cnegative
             jmp conti6
         team124:
-            call Dpositive
+            call Dnegative
             jmp conti6
         
         conti6:
@@ -666,8 +1083,38 @@ main proc
         mov dx,a[bx]
         int 21h
         prints MSG13,09h
-        mov ah,1
-        int 21h
+        ;mov ah,1
+        ;int 21h
+            mov tah,ah
+    mov tbx,bx
+    mov tdx,dx
+    mov tcx,cx
+    mov al,'x'
+    mov ah,02ch        ; Get current second         
+    int 021h
+    mov bh,dh          ; Store current second   
+    readloop12:
+    mov ah,02ch      ; Call function 02C of INT 021 to get new time
+    int 021h
+    sub dh,05h         ; Subtract 05 from new second. Giving 5 Secs for input.
+                        ; For if old second in BH=05 and new second in DH-5=1,
+                        ; four more
+                        ; seconds must pass.
+    cmp bh,dh                    
+    je endprog12         ; Exit when DH is finally equal to BH.
+                     ; Example BH=05 and DH - 05 = 05, then DH = 0F and 
+                     ; 05 - 0F = Five Seconds
+    mov ah,06h          ; Function 06h of INT 021 will directly read from the Stdin/Stdout
+    mov dl,255           ; Move 0ff into the DL register to read from the keyboard
+    int 21h              
+    jz readloop12
+    endprog12:
+    mov cx,tcx
+    mov dx,tdx
+    mov ah,tah
+    mov bx,tbx
+        ;
+        ;
         cmp al,'b'
         jz right6
         jnz wrong6
@@ -695,7 +1142,14 @@ main proc
     mov ah,1
     scans7:
         int 21h
-        mov a[bx],ax
+        mov a[bx],ax   
+        mov buzAh,AH
+        mov buzDh,DL
+        MOV AH,2
+        MOV DL, 07H
+        INT 21H
+        mov ah,buzAh
+        mov dl,buzDh
         inc bx
         loop scans7
         MOV AH,2
@@ -706,22 +1160,55 @@ main proc
     mov ah,2
     mov dx,a[bx]
     int 21h
+    mov tdx,dx
     prints MSG13,09h
-    mov ah,1
-    int 21h
+    ;mov ah,1
+    ;int 21h
+        mov tah,ah
+    mov tbx,bx
+    
+    mov tcx,cx
+    mov al,'x'
+    mov ah,02ch        ; Get current second         
+    int 021h
+    mov bh,dh          ; Store current second   
+    readloop13:
+    mov ah,02ch      ; Call function 02C of INT 021 to get new time
+    int 021h
+    sub dh,05h         ; Subtract 05 from new second. Giving 5 Secs for input.
+                        ; For if old second in BH=05 and new second in DH-5=1,
+                        ; four more
+                        ; seconds must pass.
+    cmp bh,dh                    
+    je endprog13         ; Exit when DH is finally equal to BH.
+                     ; Example BH=05 and DH - 05 = 05, then DH = 0F and 
+                     ; 05 - 0F = Five Seconds
+    mov ah,06h          ; Function 06h of INT 021 will directly read from the Stdin/Stdout
+    mov dl,255           ; Move 0ff into the DL register to read from the keyboard
+    int 21h              
+    jz readloop13
+    endprog13:
+    mov cx,tcx
+    
+    mov ah,tah
+    mov bx,tbx
+        ;
+        ;
+
     cmp al,'b'
     jz right7
     jnz wrong7
     mov cx,0
     right7:
         prints MSG6,09h
-        cmp dx,1
+        mov dx,tdx
+        cmp dl,'1'
         jz team131
-        cmp dx,2
+        cmp dl,'2'
         jz team132
-        cmp dx,3
+        cmp dl,'3'
         jz team133
-        cmp dx,4
+        cmp dl,'4'
         jz team134
         
         team131:
@@ -741,37 +1228,70 @@ main proc
     wrong7:
         inc cx
         prints MSG7,09h
+        mov dx,tdx
         inc bx 
-        cmp dx,1
+        cmp dl,'1'
         jz team141
-        cmp dx,2
+        cmp dl,'2'
         jz team142
-        cmp dx,3
+        cmp dl,'3'
         jz team143
-        cmp dx,4
+        cmp dl,'4'
         jz team144
         
         team141:
-            call Apositive
+            call Anegative
             jmp conti7
         team142:
-            call Bpositive
+            call Bnegative
             jmp conti7
         team143:
-            call Cpositive
+            call Cnegative
             jmp conti7
         team144:
-            call Dpositive
+            call Dnegative
             jmp conti7
         
         conti7:
         prints MSG10,09h
         mov ah,2
         mov dx,a[bx]
-        int 21h
+        int 21h 
+         mov tdx,dx
         prints MSG13,09h
-        mov ah,1
-        int 21h
+        ;mov ah,1
+        ;int 21h
+            mov tah,ah
+    mov tbx,bx
+   
+    mov tcx,cx
+    mov al,'x'
+    mov ah,02ch        ; Get current second         
+    int 021h
+    mov bh,dh          ; Store current second   
+    readloop14:
+    mov ah,02ch      ; Call function 02C of INT 021 to get new time
+    int 021h
+    sub dh,05h         ; Subtract 05 from new second. Giving 5 Secs for input.
+                        ; For if old second in BH=05 and new second in DH-5=1,
+                        ; four more
+                        ; seconds must pass.
+    cmp bh,dh                    
+    je endprog14         ; Exit when DH is finally equal to BH.
+                     ; Example BH=05 and DH - 05 = 05, then DH = 0F and 
+                     ; 05 - 0F = Five Seconds
+    mov ah,06h          ; Function 06h of INT 021 will directly read from the Stdin/Stdout
+    mov dl,255           ; Move 0ff into the DL register to read from the keyboard
+    int 21h              
+    jz readloop14
+    endprog14:
+    mov cx,tcx
+    mov dx,tdx
+    mov ah,tah
+    mov bx,tbx
+        ;
+        ;
+
         cmp al,'b'
         jz right7
         jnz wrong7
@@ -798,7 +1318,14 @@ main proc
     mov ah,1
     scans8:
         int 21h
-        mov a[bx],ax
+        mov a[bx],ax 
+        mov buzAh,AH
+        mov buzDh,DL
+        MOV AH,2
+        MOV DL, 07H
+        INT 21H
+        mov ah,buzAh
+        mov dl,buzDh
         inc bx
         loop scans8
         MOV AH,2
@@ -809,22 +1336,54 @@ main proc
     mov ah,2
     mov dx,a[bx]
     int 21h
+    mov tdx,dx
     prints MSG13,09h
-    mov ah,1
-    int 21h
+    ;mov ah,1
+    ;int 21h
+        mov tah,ah
+    mov tbx,bx
+    
+    mov tcx,cx
+    mov al,'x'
+    mov ah,02ch        ; Get current second         
+    int 021h
+    mov bh,dh          ; Store current second   
+    readloop15:
+    mov ah,02ch      ; Call function 02C of INT 021 to get new time
+    int 021h
+    sub dh,05h         ; Subtract 05 from new second. Giving 5 Secs for input.
+                        ; For if old second in BH=05 and new second in DH-5=1,
+                        ; four more
+                        ; seconds must pass.
+    cmp bh,dh                    
+    je endprog15         ; Exit when DH is finally equal to BH.
+                     ; Example BH=05 and DH - 05 = 05, then DH = 0F and 
+                     ; 05 - 0F = Five Seconds
+    mov ah,06h          ; Function 06h of INT 021 will directly read from the Stdin/Stdout
+    mov dl,255           ; Move 0ff into the DL register to read from the keyboard
+    int 21h              
+    jz readloop15
+    endprog15:
+    mov cx,tcx
+    
+    mov ah,tah
+    mov bx,tbx
+        ;
+        ;
     cmp al,'b'
     jz right8
     jnz wrong8
     mov cx,0
     right8:
         prints MSG6,09h
-        cmp dx,1
+        mov dx,tdx
+        cmp dl,'1'
         jz team151
-        cmp dx,2
+        cmp dl,'2'
         jz team152
-        cmp dx,3
+        cmp dl,'3'
         jz team153
-        cmp dx,4
+        cmp dl,'4'
         jz team154
         
         team151:
@@ -844,27 +1403,28 @@ main proc
     wrong8:
         inc cx
         prints MSG7,09h
-        inc bx 
-        cmp dx,1
+        inc bx
+        mov dx,tdx 
+        cmp dl,'1'
         jz team161
-        cmp dx,2
+        cmp dl,'2'
         jz team162
-        cmp dx,3
+        cmp dl,'3'
         jz team163
-        cmp dx,4
+        cmp dl,'4'
         jz team164
         
         team161:
-            call Apositive
+            call Anegative
             jmp conti8
         team162:
-            call Bpositive
+            call Bnegative
             jmp conti8
         team163:
-            call Cpositive
+            call Cnegative
             jmp conti8
         team164:
-            call Dpositive
+            call Dnegative
             jmp conti8
         
         conti8:
@@ -872,9 +1432,41 @@ main proc
         mov ah,2
         mov dx,a[bx]
         int 21h
+        mov tdx,dx
         prints MSG13,09h
-        mov ah,1
-        int 21h
+        ;mov ah,1
+        ;int 21h
+            mov tah,ah
+    mov tbx,bx
+    
+    mov tcx,cx
+    mov al,'x'
+    mov ah,02ch        ; Get current second         
+    int 021h
+    mov bh,dh          ; Store current second   
+    readloop16:
+    mov ah,02ch      ; Call function 02C of INT 021 to get new time
+    int 021h
+    sub dh,05h         ; Subtract 05 from new second. Giving 5 Secs for input.
+                        ; For if old second in BH=05 and new second in DH-5=1,
+                        ; four more
+                        ; seconds must pass.
+    cmp bh,dh                    
+    je endprog16         ; Exit when DH is finally equal to BH.
+                     ; Example BH=05 and DH - 05 = 05, then DH = 0F and 
+                     ; 05 - 0F = Five Seconds
+    mov ah,06h          ; Function 06h of INT 021 will directly read from the Stdin/Stdout
+    mov dl,255           ; Move 0ff into the DL register to read from the keyboard
+    int 21h              
+    jz readloop16
+    endprog16:
+    mov cx,tcx
+    mov dx,tdx
+    mov ah,tah
+    mov bx,tbx
+        ;
+        ;
+
         cmp al,'b'
         jz right8
         jnz wrong8
@@ -903,6 +1495,13 @@ main proc
     scans9:
         int 21h
         mov a[bx],ax
+        mov buzAh,AH
+        mov buzDh,DL
+        MOV AH,2
+        MOV DL, 07H
+        INT 21H
+        mov ah,buzAh
+        mov dl,buzDh
         inc bx
         loop scans9
         MOV AH,2
@@ -913,22 +1512,55 @@ main proc
     mov ah,2
     mov dx,a[bx]
     int 21h
+    mov tdx,dx
     prints MSG13,09h
-    mov ah,1
-    int 21h
+    ;mov ah,1
+    ;int 21h
+        mov tah,ah
+    mov tbx,bx
+    
+    mov tcx,cx
+    mov al,'x'
+    mov ah,02ch        ; Get current second         
+    int 021h
+    mov bh,dh          ; Store current second   
+    readloop17:
+    mov ah,02ch      ; Call function 02C of INT 021 to get new time
+    int 021h
+    sub dh,05h         ; Subtract 05 from new second. Giving 5 Secs for input.
+                        ; For if old second in BH=05 and new second in DH-5=1,
+                        ; four more
+                        ; seconds must pass.
+    cmp bh,dh                    
+    je endprog17         ; Exit when DH is finally equal to BH.
+                     ; Example BH=05 and DH - 05 = 05, then DH = 0F and 
+                     ; 05 - 0F = Five Seconds
+    mov ah,06h          ; Function 06h of INT 021 will directly read from the Stdin/Stdout
+    mov dl,255           ; Move 0ff into the DL register to read from the keyboard
+    int 21h              
+    jz readloop17
+    endprog17:
+    mov cx,tcx
+    
+    mov ah,tah
+    mov bx,tbx
+        ;
+        ;
+
     cmp al,'b'
     jz right9
     jnz wrong9
     mov cx,0
     right9:
         prints MSG6,09h
-        cmp dx,1
+        mov dx,tdx
+        cmp dl,'1'
         jz team171
-        cmp dx,2
+        cmp dl,'2'
         jz team172
-        cmp dx,3
+        cmp dl,'3'
         jz team173
-        cmp dx,4
+        cmp dl,'4'
         jz team174
         
         team171:
@@ -948,27 +1580,28 @@ main proc
     wrong9:
         inc cx
         prints MSG7,09h
-        inc bx 
-        cmp dx,1
+        inc bx
+        mov dx,tdx 
+        cmp dl,'1'
         jz team181
-        cmp dx,2
+        cmp dl,'2'
         jz team182
-        cmp dx,3
+        cmp dl,'3'
         jz team183
-        cmp dx,4
+        cmp dl,'4'
         jz team164
         
         team181:
-            call Apositive
+            call Anegative
             jmp conti9
         team182:
-            call Bpositive
+            call Bnegative
             jmp conti9
         team183:
-            call Cpositive
+            call Cnegative
             jmp conti9
         team184:
-            call Dpositive
+            call Dnegative
             jmp conti9
         
         conti9:
@@ -977,8 +1610,38 @@ main proc
         mov dx,a[bx]
         int 21h
         prints MSG13,09h
-        mov ah,1
-        int 21h
+        ;mov ah,1
+        ;int 21h
+            mov tah,ah
+    mov tbx,bx
+    mov tdx,dx
+    mov tcx,cx
+    mov al,'x'
+    mov ah,02ch        ; Get current second         
+    int 021h
+    mov bh,dh          ; Store current second   
+    readloop18:
+    mov ah,02ch      ; Call function 02C of INT 021 to get new time
+    int 021h
+    sub dh,05h         ; Subtract 05 from new second. Giving 5 Secs for input.
+                        ; For if old second in BH=05 and new second in DH-5=1,
+                        ; four more
+                        ; seconds must pass.
+    cmp bh,dh                    
+    je endprog18         ; Exit when DH is finally equal to BH.
+                     ; Example BH=05 and DH - 05 = 05, then DH = 0F and 
+                     ; 05 - 0F = Five Seconds
+    mov ah,06h          ; Function 06h of INT 021 will directly read from the Stdin/Stdout
+    mov dl,255           ; Move 0ff into the DL register to read from the keyboard
+    int 21h              
+    jz readloop18
+    endprog18:
+    mov cx,tcx
+    mov dx,tdx
+    mov ah,tah
+    mov bx,tbx
+        ;
+        ;
         cmp al,'b'
         jz right9
         jnz wrong9
@@ -1006,7 +1669,14 @@ main proc
     mov ah,1
     scans10:
         int 21h
-        mov a[bx],ax
+        mov a[bx],ax 
+        mov buzAh,AH
+        mov buzDh,DL
+        MOV AH,2
+        MOV DL, 07H
+        INT 21H
+        mov ah,buzAh
+        mov dl,buzDh
         inc bx
         loop scans10
         MOV AH,2
@@ -1018,22 +1688,54 @@ main proc
     mov ah,2
     mov dx,a[bx]
     int 21h
+    mov tdx,dx
     prints MSG13,09h
-    mov ah,1
-    int 21h
+    ;mov ah,1
+    ;int 21h
+        mov tah,ah
+    mov tbx,bx
+    
+    mov tcx,cx
+    mov al,'x'
+    mov ah,02ch        ; Get current second         
+    int 021h
+    mov bh,dh          ; Store current second   
+    readloop19:
+    mov ah,02ch      ; Call function 02C of INT 021 to get new time
+    int 021h
+    sub dh,05h         ; Subtract 05 from new second. Giving 5 Secs for input.
+                        ; For if old second in BH=05 and new second in DH-5=1,
+                        ; four more
+                        ; seconds must pass.
+    cmp bh,dh                    
+    je endprog19         ; Exit when DH is finally equal to BH.
+                     ; Example BH=05 and DH - 05 = 05, then DH = 0F and 
+                     ; 05 - 0F = Five Seconds
+    mov ah,06h          ; Function 06h of INT 021 will directly read from the Stdin/Stdout
+    mov dl,255           ; Move 0ff into the DL register to read from the keyboard
+    int 21h              
+    jz readloop19
+    endprog19:
+    mov cx,tcx
+    
+    mov ah,tah
+    mov bx,tbx
+        ;
+        ;
     cmp al,'b'
     jz right10
     jnz wrong10
     mov cx,0
     right10:
         prints MSG6,09h
-        cmp dx,1
+        mov dx,tdx
+        cmp dl,'1'
         jz team191
-        cmp dx,2
+        cmp dl,'2'
         jz team192
-        cmp dx,3
+        cmp dl,'3'
         jz team193
-        cmp dx,4
+        cmp dl,'4'
         jz team194
         
         team191:
@@ -1053,14 +1755,15 @@ main proc
     wrong10:
         inc cx
         prints MSG7,09h
+        mov dx,tdx
         inc bx 
-        cmp dx,1
+        cmp dl,'1'
         jz team201
-        cmp dx,2
+        cmp dl,'2'
         jz team202
-        cmp dx,3
+        cmp dl,'3'
         jz team203
-        cmp dx,4
+        cmp dl,'4'
         jz team204
         
         team201:
@@ -1082,8 +1785,38 @@ main proc
         mov dx,a[bx]
         int 21h
         prints MSG13,09h
-        mov ah,1
-        int 21h
+        ;mov ah,1
+        ;int 21h
+            mov tah,ah
+    mov tbx,bx
+    mov tdx,dx
+    mov tcx,cx
+    mov al,'x'
+    mov ah,02ch        ; Get current second         
+    int 021h
+    mov bh,dh          ; Store current second   
+    readloop20:
+    mov ah,02ch      ; Call function 02C of INT 021 to get new time
+    int 021h
+    sub dh,05h         ; Subtract 05 from new second. Giving 5 Secs for input.
+                        ; For if old second in BH=05 and new second in DH-5=1,
+                        ; four more
+                        ; seconds must pass.
+    cmp bh,dh                    
+    je endprog20         ; Exit when DH is finally equal to BH.
+                     ; Example BH=05 and DH - 05 = 05, then DH = 0F and 
+                     ; 05 - 0F = Five Seconds
+    mov ah,06h          ; Function 06h of INT 021 will directly read from the Stdin/Stdout
+    mov dl,255           ; Move 0ff into the DL register to read from the keyboard
+    int 21h              
+    jz readloop20
+    endprog20:
+    mov cx,tcx
+    mov dx,tdx
+    mov ah,tah
+    mov bx,tbx
+        ;
+        ;
         cmp al,'b'
         jz right10
         jnz wrong10
@@ -1141,6 +1874,3 @@ Cnegative:
 Dnegative:
     sub score4,1
     ret
-    
-     
-    
