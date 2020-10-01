@@ -3,7 +3,7 @@
 .STACK 100H
 .DATA    
 
-MSG1 DB 10,13,'                .....WELCOME TO JR_QUIZ.....$'
+MSG1 DB 10,13,'                .....WELCOME TO JR_QUIZ Buzzer.....$'
 MSG2 DB 10,13,'Rules : $'
 MSG3 DB 10,13,'*. For Every Correct answer you will get 1 point.$'
 MSG4 DB 10,13, '*. This is a buzzer round , you get 5 seconds to answer.$'
