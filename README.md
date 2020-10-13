@@ -13,4 +13,3 @@
 * Import quiz.asm
 * Run
 
-hihihihiihihihihiihihi
